@@ -10,6 +10,139 @@ from pathlib import Path
 # CẤU HÌNH TRÒ CHƠI
 # =========================
 st.set_page_config(
+    
+# =========================
+# NHẠC NỀN UFO HACK NÃO
+# =========================
+import streamlit.components.v1 as components
+
+st.markdown("""
+<style>
+.music-panel {
+    background: linear-gradient(135deg, #171b3b, #302050);
+    border: 1px solid #6b70d9;
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    color: white;
+    text-align: center;
+}
+.music-panel p {
+    margin: 4px 0;
+    color: #c8d8ff;
+}
+</style>
+<div class="music-panel">
+    <div style="font-size:22px">🎵 UFO SPACE RADIO</div>
+    <p>Nhạc nền vũ trụ • Bật nhạc để bắt đầu chuyến phiêu lưu!</p>
+</div>
+""", unsafe_allow_html=True)
+
+components.html("""
+<div style="
+    background:#11152f;
+    border:1px solid #555bb0;
+    border-radius:14px;
+    padding:12px;
+    color:white;
+    font-family:Arial,sans-serif;
+    text-align:center;
+">
+    <button id="play" style="
+        background:linear-gradient(90deg,#5145cd,#168fa8);
+        color:white;border:0;border-radius:10px;
+        padding:12px 22px;font-weight:bold;
+        cursor:pointer;font-size:15px;
+    ">▶ BẬT NHẠC VŨ TRỤ</button>
+
+    <p style="margin:12px 0 5px">🔊 Âm lượng</p>
+    <input id="vol" type="range" min="0" max="100"
+           value="25" style="width:85%;cursor:pointer">
+    <p id="status" style="color:#a9e9ff;font-size:12px">
+        Nhấn nút để bật nhạc
+    </p>
+</div>
+
+<script>
+const btn = document.getElementById("play");
+const vol = document.getElementById("vol");
+const status = document.getElementById("status");
+
+let ctx = null;
+let master = null;
+let oscillators = [];
+let playing = false;
+
+function startMusic() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain();
+    master.gain.value = Number(vol.value) / 100 * 0.12;
+    master.connect(ctx.destination);
+
+    // Âm thanh tổng hợp nhẹ nhàng kiểu không gian
+    const notes = [110, 164.81, 220, 146.83];
+
+    notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        osc.type = i % 2 === 0 ? "sine" : "triangle";
+        osc.frequency.value = freq;
+        filter.type = "lowpass";
+        filter.frequency.value = 450;
+
+        gain.gain.value = i === 0 ? 0.5 : 0.12;
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        osc.start();
+
+        oscillators.push(osc);
+    });
+
+    // Âm thanh nền biến đổi chậm, không cần tải file nhạc
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 25;
+    lfo.connect(lfoGain);
+    lfoGain.connect(oscillators[0].frequency);
+    lfo.start();
+    oscillators.push(lfo);
+}
+
+btn.onclick = async () => {
+    try {
+        if (!playing) {
+            if (!ctx) startMusic();
+            await ctx.resume();
+            playing = true;
+            btn.textContent = "⏸ TẮT NHẠC";
+            status.textContent = "Đang phát âm thanh không gian";
+        } else {
+            await ctx.suspend();
+            playing = false;
+            btn.textContent = "▶ BẬT NHẠC VŨ TRỤ";
+            status.textContent = "Nhạc đang tạm dừng";
+        }
+    } catch (e) {
+        status.textContent = "Trình duyệt chưa cho phép phát âm thanh";
+    }
+};
+
+vol.oninput = () => {
+    if (master && ctx) {
+        master.gain.setTargetAtTime(
+            Number(vol.value) / 100 * 0.12,
+            ctx.currentTime,
+            0.05
+        );
+    }
+};
+</script>
+""", height=190)
+
     page_title="UFO HACK NÃO",
     page_icon="👽",
     layout="wide",
